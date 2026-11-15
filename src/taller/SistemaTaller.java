@@ -61,6 +61,59 @@ public class SistemaTaller {
         return ultimo;
     }
 
+    /**
+     * Busca por placa en la LISTA GENERAL (registro completo). buscarDato(Object)
+     * recorre los nodos comparando con equals(), que compara placas, y devuelve
+     * la posición; buscarDato(int) devuelve el vehículo de esa posición.
+     */
+    public Vehiculo buscarPorPlaca(String placa) throws Exception {
+        if (!Vehiculo.esPlacaValida(placa)) {
+            throw new Exception("Placa inválida: \"" + placa + "\"");
+        }
+        if (!listaGeneral.contiene(Vehiculo.clave(placa))) {
+            throw new Exception("No hay ningún vehículo con placa " + Vehiculo.normalizarPlaca(placa) + " en el registro");
+        }
+        int posicion = listaGeneral.buscarDato(Vehiculo.clave(placa));
+        return (Vehiculo) listaGeneral.buscarDato(posicion);
+    }
+
+    public int posicionEnLista(String placa) throws Exception {
+        return listaGeneral.buscarDato(Vehiculo.clave(placa));
+    }
+
+    /**
+     * Cancela un vehículo PENDIENTE usando una COLA AUXILIAR (no se elimina del
+     * centro de la cola directamente):
+     *  1. Se desencolan TODOS los vehículos de la cola de pendientes.
+     *  2. El que se va a cancelar se separa; los demás se encolan en la auxiliar,
+     *     en el mismo orden en que salieron.
+     *  3. Se devuelven todos de la auxiliar a la cola original.
+     * Así se conserva el orden de llegada de los que siguen esperando.
+     * El vehículo cancelado sigue en la lista general, con estado CANCELADO.
+     */
+    public Vehiculo cancelarPendiente(String placa) throws Exception {
+        Vehiculo buscado = buscarPorPlaca(placa); // valida placa y existencia en el registro
+        if (!colaPendientes.contiene(buscado)) {
+            throw new Exception("El vehículo " + buscado.getPlaca() + " no está pendiente (estado: "
+                    + buscado.getEstado() + "). Solo se cancelan vehículos EN ESPERA.");
+        }
+        Cola auxiliar = new Cola();
+        Vehiculo cancelado = null;
+        while (!colaPendientes.esVacia()) {
+            Vehiculo actual = (Vehiculo) colaPendientes.desencolar();
+            if (cancelado == null && actual.equals(buscado)) {
+                cancelado = actual;          // este NO pasa a la auxiliar
+            } else {
+                auxiliar.encolar(actual);
+            }
+        }
+        while (!auxiliar.esVacia()) {
+            colaPendientes.encolar(auxiliar.desencolar());
+        }
+        cancelado.setEstado(Vehiculo.CANCELADO);
+        return cancelado;
+    }
+
     /** true si la placa ya está en el registro general (recorre la lista con equals). */
     public boolean existePlaca(String placa) {
         return Vehiculo.esPlacaValida(placa) && listaGeneral.contiene(Vehiculo.clave(placa));
@@ -94,6 +147,8 @@ public class SistemaTaller {
             System.out.println(" 3. Ver vehículos pendientes");
             System.out.println(" 4. Procesar siguiente vehículo (reparar)");
             System.out.println(" 5. Ver historial de vehículos reparados");
+            System.out.println(" 6. Buscar vehículo por placa");
+            System.out.println(" 7. Cancelar vehículo pendiente");
             System.out.println(" 8. Deshacer último procesamiento");
             System.out.println("10. Salir");
             System.out.print("Seleccione una opción: ");
@@ -123,6 +178,17 @@ public class SistemaTaller {
                         System.out.println("HISTORIAL DE REPARADOS (Pila: el más reciente arriba) — "
                                 + historialProcesados.tamanio());
                         System.out.print(historialProcesados.mostrar());
+                    }
+                    case "6" -> menuBuscar(sc);
+                    case "7" -> {
+                        String placa = leer(sc, "Placa del vehículo a cancelar: ");
+                        System.out.println("  Cola antes:");
+                        System.out.print(colaPendientes.mostrar());
+                        Vehiculo v = cancelarPendiente(placa);
+                        System.out.println("✓ Cancelado: " + v.getPlaca() + " (" + v.getPropietario()
+                                + "). Sigue en el registro general con estado CANCELADO.");
+                        System.out.println("  Cola después (los demás conservan su orden):");
+                        System.out.print(colaPendientes.mostrar());
                     }
                     case "8" -> {
                         Vehiculo v = deshacerUltimoProcesamiento();
@@ -168,6 +234,22 @@ public class SistemaTaller {
         System.out.println("✓ Registrado: " + vehiculo);
         System.out.println("  Quedó en la lista general (posición " + (listaGeneral.cuentaElementos() - 1)
                 + ") y en la cola de pendientes (turno " + colaPendientes.tamanio() + ").");
+    }
+
+    private void menuBuscar(Scanner sc) throws Exception {
+        String placa = leer(sc, "Placa a buscar: ");
+        Vehiculo v = buscarPorPlaca(placa);
+        System.out.println("✓ Encontrado en la lista general, posición " + posicionEnLista(placa) + ":");
+        System.out.println("  Placa:       " + v.getPlaca());
+        System.out.println("  Propietario: " + v.getPropietario());
+        System.out.println("  Marca:       " + v.getMarca());
+        System.out.println("  Servicio:    " + v.getServicio());
+        System.out.println("  Falla:       " + v.getDescripcionFalla());
+        System.out.println("  Estado:      " + v.getEstado());
+        System.out.println("  ¿En la cola de pendientes? " + (colaPendientes.contiene(v) ? "Sí" : "No"));
+        int enPila = historialProcesados.buscar(v);
+        System.out.println("  ¿En el historial? " + (enPila == -1 ? "No"
+                : "Sí, a " + enPila + " posición(es) de la cima" + (enPila == 1 ? " (es el último reparado)" : "")));
     }
 
     private static String leer(Scanner sc, String mensaje) {
