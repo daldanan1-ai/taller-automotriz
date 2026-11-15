@@ -32,6 +32,35 @@ public class SistemaTaller {
         colaPendientes.encolar(vehiculo);
     }
 
+    /**
+     * Regla obligatoria: se saca el vehículo del FRENTE de la cola (el que llegó
+     * primero) y se apila en el historial. Queda en la cima: es el más reciente.
+     */
+    public Vehiculo procesarSiguiente() throws Exception {
+        if (colaPendientes.esVacia()) {
+            throw new Exception("No hay vehículos pendientes por reparar");
+        }
+        Vehiculo procesado = (Vehiculo) colaPendientes.desencolar();
+        procesado.setEstado(Vehiculo.REPARADO);
+        historialProcesados.apilar(procesado);
+        return procesado;
+    }
+
+    /**
+     * Regla obligatoria: se desapila el ÚLTIMO vehículo reparado (LIFO) y vuelve
+     * a la cola de pendientes. Como encolar agrega al final, vuelve a esperar
+     * detrás de los que ya estaban en la cola.
+     */
+    public Vehiculo deshacerUltimoProcesamiento() throws Exception {
+        if (historialProcesados.esVacia()) {
+            throw new Exception("No hay procesamientos para deshacer: el historial está vacío");
+        }
+        Vehiculo ultimo = (Vehiculo) historialProcesados.desapilar();
+        ultimo.setEstado(Vehiculo.EN_ESPERA);
+        colaPendientes.encolar(ultimo);
+        return ultimo;
+    }
+
     /** true si la placa ya está en el registro general (recorre la lista con equals). */
     public boolean existePlaca(String placa) {
         return Vehiculo.esPlacaValida(placa) && listaGeneral.contiene(Vehiculo.clave(placa));
@@ -63,6 +92,9 @@ public class SistemaTaller {
             System.out.println(" 1. Registrar vehículo");
             System.out.println(" 2. Ver todos los vehículos registrados");
             System.out.println(" 3. Ver vehículos pendientes");
+            System.out.println(" 4. Procesar siguiente vehículo (reparar)");
+            System.out.println(" 5. Ver historial de vehículos reparados");
+            System.out.println(" 8. Deshacer último procesamiento");
             System.out.println("10. Salir");
             System.out.print("Seleccione una opción: ");
             if (!sc.hasNextLine()) {
@@ -80,6 +112,24 @@ public class SistemaTaller {
                     case "3" -> {
                         System.out.println("PENDIENTES (Cola, orden de llegada) — " + colaPendientes.tamanio());
                         System.out.print(colaPendientes.mostrar());
+                    }
+                    case "4" -> {
+                        Vehiculo v = procesarSiguiente();
+                        System.out.println("✓ Reparado (desencolado del frente y apilado en el historial):");
+                        System.out.println("  " + v);
+                        System.out.println("  Quedan " + colaPendientes.tamanio() + " vehículo(s) pendiente(s).");
+                    }
+                    case "5" -> {
+                        System.out.println("HISTORIAL DE REPARADOS (Pila: el más reciente arriba) — "
+                                + historialProcesados.tamanio());
+                        System.out.print(historialProcesados.mostrar());
+                    }
+                    case "8" -> {
+                        Vehiculo v = deshacerUltimoProcesamiento();
+                        System.out.println("✓ Se deshizo la reparación de " + v.getPlaca()
+                                + " (desapilado de la cima y encolado al final).");
+                        System.out.println("  Ahora está en el turno " + colaPendientes.tamanio()
+                                + " de la cola, con estado " + v.getEstado() + ".");
                     }
                     case "10" -> {
                         System.out.println("Gracias por usar el sistema del taller.");
