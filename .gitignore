@@ -1,0 +1,11 @@
+# Compilados
+out/
+bin/
+*.class
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+.idea/
+*.iml
