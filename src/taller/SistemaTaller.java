@@ -32,6 +32,11 @@ public class SistemaTaller {
         colaPendientes.encolar(vehiculo);
     }
 
+    /** true si la placa ya está en el registro general (recorre la lista con equals). */
+    public boolean existePlaca(String placa) {
+        return Vehiculo.esPlacaValida(placa) && listaGeneral.contiene(Vehiculo.clave(placa));
+    }
+
     public Lista getListaGeneral() {
         return listaGeneral;
     }
@@ -95,6 +100,10 @@ public class SistemaTaller {
         String placa = leer(sc, "Placa (ABC123 o ABC12D): ");
         if (!Vehiculo.esPlacaValida(placa)) {   // se valida enseguida para no pedir los demás datos
             throw new IllegalArgumentException("Placa inválida: \"" + placa + "\"");
+        }
+        if (existePlaca(placa)) {               // duplicado: se avisa antes de pedir los demás datos
+            throw new Exception("Ya existe un vehículo con placa " + Vehiculo.normalizarPlaca(placa)
+                    + " en el registro");
         }
         String propietario = leer(sc, "Propietario: ");
         String marca = leer(sc, "Marca: ");

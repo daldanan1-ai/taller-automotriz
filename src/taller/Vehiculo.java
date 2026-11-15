@@ -31,6 +31,19 @@ public class Vehiculo {
         this.estado = EN_ESPERA;
     }
 
+    /** Constructor privado usado solo por clave(): un vehículo que únicamente tiene placa. */
+    private Vehiculo(String placa) {
+        setPlaca(placa);
+    }
+
+    /**
+     * Crea un objeto "clave" con solo la placa, para buscar con equals() en la
+     * Lista, la Cola o la Pila (equals solo compara la placa).
+     */
+    public static Vehiculo clave(String placa) {
+        return new Vehiculo(placa);
+    }
+
     /**
      * Quita espacios y guiones y pasa a mayúsculas: " abc-123 " -> "ABC123".
      * Se usa también al BUSCAR, para que el usuario pueda escribir la placa como quiera.
