@@ -114,6 +114,58 @@ public class SistemaTaller {
         return cancelado;
     }
 
+    /**
+     * Reporte de cantidades. Los estados se cuentan recorriendo la lista general
+     * por índice (buscarDato(i)), que contiene a TODOS los vehículos.
+     */
+    public String reporteCantidades() throws Exception {
+        int enEspera = 0;
+        int reparados = 0;
+        int cancelados = 0;
+        for (int i = 0; i < listaGeneral.cuentaElementos(); i++) {
+            Vehiculo v = (Vehiculo) listaGeneral.buscarDato(i);
+            switch (v.getEstado()) {
+                case Vehiculo.EN_ESPERA -> enEspera++;
+                case Vehiculo.REPARADO -> reparados++;
+                default -> cancelados++;
+            }
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("  Registro general (Lista):        %3d%n", listaGeneral.cuentaElementos()));
+        sb.append(String.format("  Pendientes (Cola):               %3d%n", colaPendientes.tamanio()));
+        sb.append(String.format("  Historial de reparados (Pila):   %3d%n", historialProcesados.tamanio()));
+        sb.append(String.format("  Por estado -> EN ESPERA: %d | REPARADO: %d | CANCELADO: %d%n",
+                enEspera, reparados, cancelados));
+        try {
+            sb.append("  Próximo a reparar (peek de la cola): ")
+              .append(((Vehiculo) colaPendientes.peek()).getPlaca()).append("\n");
+        } catch (Exception e) {
+            sb.append("  Próximo a reparar: ninguno\n");
+        }
+        try {
+            sb.append("  Último reparado (peek de la pila):   ")
+              .append(((Vehiculo) historialProcesados.peek()).getPlaca()).append("\n");
+        } catch (Exception e) {
+            sb.append("  Último reparado: ninguno\n");
+        }
+        boolean coherente = enEspera == colaPendientes.tamanio() && reparados == historialProcesados.tamanio();
+        sb.append(coherente ? "  ✓ Los estados coinciden con el contenido de la Cola y la Pila."
+                : "  ✗ Los estados NO coinciden con la Cola y la Pila.");
+        return sb.toString();
+    }
+
+    /** Carga vehículos de ejemplo para probar el sistema sin digitarlos uno a uno. */
+    public void cargarDatosDeEjemplo() throws Exception {
+        registrarVehiculo(new Vehiculo("ABC123", "Juan Pérez", "Mazda", "Frenos", "Ruido metálico al frenar"));
+        registrarVehiculo(new Vehiculo("XYZ98K", "Ana Ruiz", "AKT", "Cambio de aceite", "Cambio de aceite y filtro"));
+        registrarVehiculo(new Vehiculo("DEF456", "Luis Mora", "Chevrolet", "Motor", "No enciende en las mañanas"));
+        registrarVehiculo(new Vehiculo("GHI789", "María Torres", "Renault", "Suspensión", "Golpe en la rueda delantera"));
+        registrarVehiculo(new Vehiculo("JKL321", "Carlos Díaz", "Toyota", "Sistema eléctrico", "Luces intermitentes no funcionan"));
+        registrarVehiculo(new Vehiculo("MNO654", "Sofía Herrera", "Kia", "Mantenimiento preventivo", "Revisión de los 20.000 km"));
+        registrarVehiculo(new Vehiculo("PQR11B", "Andrés Gómez", "Yamaha", "Frenos", "Pastillas desgastadas"));
+        registrarVehiculo(new Vehiculo("STU852", "Laura Pineda", "Nissan", "Latonería y pintura", "Rayón en la puerta trasera"));
+    }
+
     /** true si la placa ya está en el registro general (recorre la lista con equals). */
     public boolean existePlaca(String placa) {
         return Vehiculo.esPlacaValida(placa) && listaGeneral.contiene(Vehiculo.clave(placa));
@@ -135,7 +187,17 @@ public class SistemaTaller {
 
     public static void main(String[] args) {
         SistemaTaller sistema = new SistemaTaller();
-        sistema.ejecutarMenu(new Scanner(System.in));
+        Scanner sc = new Scanner(System.in);
+        System.out.print("¿Desea cargar 8 vehículos de ejemplo? (S/N): ");
+        if (sc.hasNextLine() && sc.nextLine().trim().equalsIgnoreCase("S")) {
+            try {
+                sistema.cargarDatosDeEjemplo();
+                System.out.println("✓ Se registraron 8 vehículos de ejemplo en la lista y en la cola.");
+            } catch (Exception e) {
+                System.out.println("✗ No se pudieron cargar los datos: " + e.getMessage());
+            }
+        }
+        sistema.ejecutarMenu(sc);
     }
 
     public void ejecutarMenu(Scanner sc) {
@@ -150,6 +212,7 @@ public class SistemaTaller {
             System.out.println(" 6. Buscar vehículo por placa");
             System.out.println(" 7. Cancelar vehículo pendiente");
             System.out.println(" 8. Deshacer último procesamiento");
+            System.out.println(" 9. Ver cantidad de vehículos (reporte)");
             System.out.println("10. Salir");
             System.out.print("Seleccione una opción: ");
             if (!sc.hasNextLine()) {
@@ -162,7 +225,10 @@ public class SistemaTaller {
                     case "1" -> menuRegistrar(sc);
                     case "2" -> {
                         System.out.println("REGISTRO GENERAL (Lista) — " + listaGeneral.cuentaElementos() + " vehículos");
+                        System.out.println("Orden de registro (mostrarAdelante: de primero a último por 'derecha'):");
                         System.out.print(listaGeneral.mostrarAdelante());
+                        System.out.println("Orden inverso (mostrarAtras: de último a primero por 'izquierda'):");
+                        System.out.print(listaGeneral.mostrarAtras());
                     }
                     case "3" -> {
                         System.out.println("PENDIENTES (Cola, orden de llegada) — " + colaPendientes.tamanio());
@@ -196,6 +262,10 @@ public class SistemaTaller {
                                 + " (desapilado de la cima y encolado al final).");
                         System.out.println("  Ahora está en el turno " + colaPendientes.tamanio()
                                 + " de la cola, con estado " + v.getEstado() + ".");
+                    }
+                    case "9" -> {
+                        System.out.println("REPORTE DE CANTIDADES");
+                        System.out.println(reporteCantidades());
                     }
                     case "10" -> {
                         System.out.println("Gracias por usar el sistema del taller.");
