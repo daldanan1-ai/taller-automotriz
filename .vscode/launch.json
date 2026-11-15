@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Taller automotriz (menú)",
+      "request": "launch",
+      "mainClass": "taller.SistemaTaller",
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "java",
+      "name": "Pruebas",
+      "request": "launch",
+      "mainClass": "PruebasTaller",
+      "console": "integratedTerminal"
+    }
+  ]
+}
